@@ -100,7 +100,7 @@ describe('recipe routes', () => {
     return request(app)
       .get(`/api/v1/recipes/${recipe._id}`)
       .then(res => {
-        expect(res.body).toEqual({
+        expect(res.body).toMatchObject({
           _id: recipe._id.toString(),
           name: 'cookies',
           ingredients: [
@@ -112,26 +112,22 @@ describe('recipe routes', () => {
             'put dough on cookie sheet',
             'bake for 10 minutes'
           ],
-          events: JSON.parse(JSON.stringify(events)),
           __v: 0
+        });
+
+        events.forEach(event => {
+          expect(res.body.events).toContainEqual({
+            _id: event._id.toString(),
+            recipeId: event.recipeId.toString(), 
+            dateOfEvent: event.dateOfEvent.toISOString(), 
+            rating: event.rating,
+            __v: 0
+          });
         });
       });
   });
 
   it('updates a recipe by id', async() => {
-    const recipe = await Recipe.create({
-      name: 'cookies',
-      ingredients: [
-        { name: 'flour', amount: 1, measurement: 'cup' }
-      ],
-      directions: [
-        'preheat oven to 375',
-        'mix ingredients',
-        'put dough on cookie sheet',
-        'bake for 10 minutes'
-      ],
-    });
-
     return request(app)
       .patch(`/api/v1/recipes/${recipe._id}`)
       .send({ name: 'good cookies' })
@@ -154,19 +150,6 @@ describe('recipe routes', () => {
   });
 
   it('deletes a recipe by id', async() => {
-    const recipe = await Recipe.create({
-      name: 'cookies',
-      ingredients: [
-        { name: 'flour', amount: 1, measurement: 'cup' }
-      ],
-      directions: [
-        'preheat oven to 375',
-        'mix ingredients',
-        'put dough on cookie sheet',
-        'bake for 10 minutes'
-      ],
-    });
-
     return request(app)
       .delete(`/api/v1/recipes/${recipe._id}`)
       .then(res => {
