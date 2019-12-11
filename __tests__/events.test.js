@@ -18,7 +18,7 @@ describe('event routes', () => {
 
   let recipe;
   beforeEach(async() => {
-    recipe = await new Recipe({
+    recipe = await Recipe.create({
       name: 'cookies',
       ingredients: [
         { name: 'flour', amount: 1, measurement: 'cup' }
@@ -87,7 +87,7 @@ describe('event routes', () => {
       .then(res => {
         expect(res.body).toEqual({
           _id: event._id.toString(),
-          recipeId: recipe._id.toString(),
+          recipeId: JSON.parse(JSON.stringify(recipe)),
           dateOfEvent: event.dateOfEvent.toISOString(),
           notes: 'It went well',
           rating: 4,
@@ -98,7 +98,7 @@ describe('event routes', () => {
 
   it('updates an event by id', async() => {
     const event = await Event.create({
-      recipeId: '1234',
+      recipeId: recipe._id,
       dateOfEvent: Date.now(),
       notes: 'It went well',
       rating: 4
@@ -109,9 +109,9 @@ describe('event routes', () => {
       .send({ rating: 5 })
       .then(res => {
         expect(res.body).toEqual({
-          _id: expect.any(String),
-          recipeId: '1234',
-          dateOfEvent: expect.any(String),
+          _id: event._id.toString(),
+          recipeId: recipe._id.toString(),
+          dateOfEvent: event.dateOfEvent.toISOString(),
           notes: 'It went well',
           rating: 5,
           __v: 0
