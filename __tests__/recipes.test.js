@@ -5,6 +5,7 @@ const app = require('../lib/app');
 const connect = require('../lib/utils/connect');
 const mongoose = require('mongoose');
 const Recipe = require('../lib/models/Recipe');
+const Event = require('../lib/models/Event');
 
 describe('recipe routes', () => {
   beforeAll(() => {
@@ -13,6 +14,30 @@ describe('recipe routes', () => {
 
   beforeEach(() => {
     return mongoose.connection.dropDatabase();
+  });
+
+  let recipe;
+  let events;
+  beforeEach(async() => {
+    recipe = await Recipe.create({
+      name: 'cookies',
+      ingredients: [
+        { name: 'flour', amount: 1, measurement: 'cup' }
+      ],
+      directions: [
+        'preheat oven to 375',
+        'mix ingredients',
+        'put dough on cookie sheet',
+        'bake for 10 minutes'
+      ]
+    });
+
+    events = await Event.create([
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 3 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 2 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 3 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 5 },
+    ]);
   });
 
   afterAll(() => {
@@ -72,24 +97,11 @@ describe('recipe routes', () => {
   });
 
   it('gets a recipe by id', async() => {
-    const recipe = await Recipe.create({
-      name: 'cookies',
-      ingredients: [
-        { name: 'flour', amount: 1, measurement: 'cup' }
-      ],
-      directions: [
-        'preheat oven to 375',
-        'mix ingredients',
-        'put dough on cookie sheet',
-        'bake for 10 minutes'
-      ],
-    });
-
     return request(app)
       .get(`/api/v1/recipes/${recipe._id}`)
       .then(res => {
         expect(res.body).toEqual({
-          _id: expect.any(String),
+          _id: recipe._id.toString(),
           name: 'cookies',
           ingredients: [
             { _id: expect.any(String), name: 'flour', amount: 1, measurement: 'cup' }
@@ -100,6 +112,7 @@ describe('recipe routes', () => {
             'put dough on cookie sheet',
             'bake for 10 minutes'
           ],
+          events: JSON.parse(JSON.stringify(events)),
           __v: 0
         });
       });
