@@ -76,7 +76,7 @@ describe('event routes', () => {
 
   it('gets an event by id', async() => {
     const event = await Event.create({
-      recipeId: '1234',
+      recipeId: recipe._id,
       dateOfEvent: Date.now(),
       notes: 'It went well',
       rating: 4
@@ -86,9 +86,9 @@ describe('event routes', () => {
       .get(`/api/v1/events/${event._id}`)
       .then(res => {
         expect(res.body).toEqual({
-          _id: expect.any(String),
-          recipeId: '1234',
-          dateOfEvent: expect.any(String),
+          _id: event._id.toString(),
+          recipeId: recipe._id.toString(),
+          dateOfEvent: event.dateOfEvent.toISOString(),
           notes: 'It went well',
           rating: 4,
           __v: 0
