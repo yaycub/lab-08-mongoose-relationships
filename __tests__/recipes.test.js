@@ -169,4 +169,25 @@ describe('recipe routes', () => {
         });
       });
   });
+
+  it('should return recipes by an ingredient query', () => {
+    return request(app)
+      .get('/api/v1/recipes?ingredient=flour')
+      .then(res => {
+        expect(res.body).toEqual([{
+          _id: recipe._id.toString(),
+          name: 'cookies',
+          ingredients: [
+            { _id: expect.any(String), name: 'flour', amount: 1, measurement: 'cup' }
+          ],
+          directions: [
+            'preheat oven to 375',
+            'mix ingredients',
+            'put dough on cookie sheet',
+            'bake for 10 minutes'
+          ],
+          __v: 0
+        }]);
+      });
+  });
 });
