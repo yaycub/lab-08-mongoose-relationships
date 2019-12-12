@@ -4,6 +4,7 @@ const request = require('supertest');
 const app = require('../lib/app');
 const connect = require('../lib/utils/connect');
 const mongoose = require('mongoose');
+const Recipe = require('../lib/models/Recipe');
 const Event = require('../lib/models/Event');
 
 describe('event routes', () => {
@@ -15,6 +16,22 @@ describe('event routes', () => {
     return mongoose.connection.dropDatabase();
   });
 
+  let recipe;
+  beforeEach(async() => {
+    recipe = await Recipe.create({
+      name: 'cookies',
+      ingredients: [
+        { name: 'flour', amount: 1, measurement: 'cup' }
+      ],
+      directions: [
+        'preheat oven to 375',
+        'mix ingredients',
+        'put dough on cookie sheet',
+        'bake for 10 minutes'
+      ]
+    });
+  });
+
   afterAll(() => {
     return mongoose.connection.close();
   });
@@ -23,7 +40,7 @@ describe('event routes', () => {
     return request(app)
       .post('/api/v1/events')
       .send({
-        recipeId: '1234',
+        recipeId: recipe._id,
         dateOfEvent: Date.now(),
         notes: 'It went well',
         rating: 4
@@ -31,7 +48,7 @@ describe('event routes', () => {
       .then(res => {
         expect(res.body).toEqual({
           _id: expect.any(String),
-          recipeId: '1234',
+          recipeId: recipe._id.toString(),
           dateOfEvent: expect.any(String),
           notes: 'It went well',
           rating: 4,
@@ -42,10 +59,10 @@ describe('event routes', () => {
 
   it('gets all events', async() => {
     const events = await Event.create([
-      { recipeId: '1234', dateOfEvent: Date.now(), rating: 3 },
-      { recipeId: '3456', dateOfEvent: Date.now(), rating: 2 },
-      { recipeId: '2345', dateOfEvent: Date.now(), rating: 3 },
-      { recipeId: '6544', dateOfEvent: Date.now(), rating: 5 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 3 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 2 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 3 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 5 },
     ]);
 
     return request(app)
@@ -59,7 +76,7 @@ describe('event routes', () => {
 
   it('gets an event by id', async() => {
     const event = await Event.create({
-      recipeId: '1234',
+      recipeId: recipe._id,
       dateOfEvent: Date.now(),
       notes: 'It went well',
       rating: 4
@@ -69,9 +86,9 @@ describe('event routes', () => {
       .get(`/api/v1/events/${event._id}`)
       .then(res => {
         expect(res.body).toEqual({
-          _id: expect.any(String),
-          recipeId: '1234',
-          dateOfEvent: expect.any(String),
+          _id: event._id.toString(),
+          recipeId: JSON.parse(JSON.stringify(recipe)),
+          dateOfEvent: event.dateOfEvent.toISOString(),
           notes: 'It went well',
           rating: 4,
           __v: 0
@@ -81,7 +98,7 @@ describe('event routes', () => {
 
   it('updates an event by id', async() => {
     const event = await Event.create({
-      recipeId: '1234',
+      recipeId: recipe._id,
       dateOfEvent: Date.now(),
       notes: 'It went well',
       rating: 4
@@ -92,9 +109,9 @@ describe('event routes', () => {
       .send({ rating: 5 })
       .then(res => {
         expect(res.body).toEqual({
-          _id: expect.any(String),
-          recipeId: '1234',
-          dateOfEvent: expect.any(String),
+          _id: event._id.toString(),
+          recipeId: recipe._id.toString(),
+          dateOfEvent: event.dateOfEvent.toISOString(),
           notes: 'It went well',
           rating: 5,
           __v: 0
@@ -104,7 +121,7 @@ describe('event routes', () => {
 
   it('deletes an event by id', async() => {
     const event = await Event.create({
-      recipeId: '1234',
+      recipeId: recipe._id,
       dateOfEvent: Date.now(),
       notes: 'It went well',
       rating: 4
@@ -114,9 +131,9 @@ describe('event routes', () => {
       .delete(`/api/v1/events/${event._id}`)
       .then(res => {
         expect(res.body).toEqual({
-          _id: expect.any(String),
-          recipeId: '1234',
-          dateOfEvent: expect.any(String),
+          _id: event._id.toString(),
+          recipeId: recipe._id.toString(),
+          dateOfEvent: event.dateOfEvent.toISOString(),
           notes: 'It went well',
           rating: 4,
           __v: 0

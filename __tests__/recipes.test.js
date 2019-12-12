@@ -5,6 +5,7 @@ const app = require('../lib/app');
 const connect = require('../lib/utils/connect');
 const mongoose = require('mongoose');
 const Recipe = require('../lib/models/Recipe');
+const Event = require('../lib/models/Event');
 
 describe('recipe routes', () => {
   beforeAll(() => {
@@ -13,6 +14,30 @@ describe('recipe routes', () => {
 
   beforeEach(() => {
     return mongoose.connection.dropDatabase();
+  });
+
+  let recipe;
+  let events;
+  beforeEach(async() => {
+    recipe = await Recipe.create({
+      name: 'cookies',
+      ingredients: [
+        { name: 'flour', amount: 1, measurement: 'cup' }
+      ],
+      directions: [
+        'preheat oven to 375',
+        'mix ingredients',
+        'put dough on cookie sheet',
+        'bake for 10 minutes'
+      ]
+    });
+
+    events = await Event.create([
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 3 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 2 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 3 },
+      { recipeId: recipe._id, dateOfEvent: Date.now(), rating: 5 },
+    ]);
   });
 
   afterAll(() => {
@@ -72,24 +97,11 @@ describe('recipe routes', () => {
   });
 
   it('gets a recipe by id', async() => {
-    const recipe = await Recipe.create({
-      name: 'cookies',
-      ingredients: [
-        { name: 'flour', amount: 1, measurement: 'cup' }
-      ],
-      directions: [
-        'preheat oven to 375',
-        'mix ingredients',
-        'put dough on cookie sheet',
-        'bake for 10 minutes'
-      ],
-    });
-
     return request(app)
       .get(`/api/v1/recipes/${recipe._id}`)
       .then(res => {
-        expect(res.body).toEqual({
-          _id: expect.any(String),
+        expect(res.body).toMatchObject({
+          _id: recipe._id.toString(),
           name: 'cookies',
           ingredients: [
             { _id: expect.any(String), name: 'flour', amount: 1, measurement: 'cup' }
@@ -102,23 +114,20 @@ describe('recipe routes', () => {
           ],
           __v: 0
         });
+
+        events.forEach(event => {
+          expect(res.body.events).toContainEqual({
+            _id: event._id.toString(),
+            recipeId: event.recipeId.toString(), 
+            dateOfEvent: event.dateOfEvent.toISOString(), 
+            rating: event.rating,
+            __v: 0
+          });
+        });
       });
   });
 
   it('updates a recipe by id', async() => {
-    const recipe = await Recipe.create({
-      name: 'cookies',
-      ingredients: [
-        { name: 'flour', amount: 1, measurement: 'cup' }
-      ],
-      directions: [
-        'preheat oven to 375',
-        'mix ingredients',
-        'put dough on cookie sheet',
-        'bake for 10 minutes'
-      ],
-    });
-
     return request(app)
       .patch(`/api/v1/recipes/${recipe._id}`)
       .send({ name: 'good cookies' })
@@ -141,19 +150,6 @@ describe('recipe routes', () => {
   });
 
   it('deletes a recipe by id', async() => {
-    const recipe = await Recipe.create({
-      name: 'cookies',
-      ingredients: [
-        { name: 'flour', amount: 1, measurement: 'cup' }
-      ],
-      directions: [
-        'preheat oven to 375',
-        'mix ingredients',
-        'put dough on cookie sheet',
-        'bake for 10 minutes'
-      ],
-    });
-
     return request(app)
       .delete(`/api/v1/recipes/${recipe._id}`)
       .then(res => {
@@ -171,6 +167,27 @@ describe('recipe routes', () => {
           ],
           __v: 0
         });
+      });
+  });
+
+  it('should return recipes by an ingredient query', () => {
+    return request(app)
+      .get('/api/v1/recipes?ingredient=flour')
+      .then(res => {
+        expect(res.body).toEqual([{
+          _id: recipe._id.toString(),
+          name: 'cookies',
+          ingredients: [
+            { _id: expect.any(String), name: 'flour', amount: 1, measurement: 'cup' }
+          ],
+          directions: [
+            'preheat oven to 375',
+            'mix ingredients',
+            'put dough on cookie sheet',
+            'bake for 10 minutes'
+          ],
+          __v: 0
+        }]);
       });
   });
 });
